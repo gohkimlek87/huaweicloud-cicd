@@ -7,18 +7,18 @@
 # ---------------------------------------------------------------------------
 terraform {
   backend "s3" {
-    # Huawei Cloud OBS exposes an S3-compatible API, so the S3 backend works
-    # with a custom endpoint. All real values supplied via -backend-config.
-    bucket                      = "REPLACE_VIA_BACKEND_CONFIG"
-    key                         = "REPLACE_VIA_BACKEND_CONFIG"
-    region                      = "REPLACE_VIA_BACKEND_CONFIG"
-    endpoint                    = "REPLACE_VIA_BACKEND_CONFIG" # e.g. https://obs.ap-southeast-1.myhuaweicloud.com
-    access_key                  = "REPLACE_VIA_BACKEND_CONFIG"
-    secret_key                  = "REPLACE_VIA_BACKEND_CONFIG"
+    bucket = "terraform-state-bucket-singapore"
+    key    = "terraform-central.tfstate"
+    region = "ap-southeast-3"
+    
+    endpoints = {
+      s3 = "https://obs.ap-southeast-3.myhuaweicloud.com"
+    }
+
     skip_region_validation      = true
     skip_credentials_validation = true
-    skip_requesting_account_id  = true
     skip_metadata_api_check     = true
-    use_path_style              = true
+    skip_requesting_account_id  = true
+    skip_s3_checksum            = true
   }
 }
