@@ -7,12 +7,13 @@
 # ---------------------------------------------------------------------------
 terraform {
   backend "s3" {
-    bucket = "terraform-state-bucket-singapore"
-    key    = "terraform-central.tfstate"
-    region = "ap-southeast-3"
-    
+    bucket         = "REPLACE_VIA_BACKEND_CONFIG"
+    key            = "REPLACE_VIA_BACKEND_CONFIG"
+    region         = "REPLACE_VIA_BACKEND_CONFIG"
+    access_key     = "REPLACE_VIA_BACKEND_CONFIG"
+    secret_key     = "REPLACE_VIA_BACKEND_CONFIG"
     endpoints = {
-      s3 = "https://obs.ap-southeast-3.myhuaweicloud.com"
+      s3 = "REPLACE_VIA_BACKEND_CONFIG"
     }
 
     skip_region_validation      = true
