@@ -1,4 +1,4 @@
-name: terraform-deploy-huaweicloud
+name: terraform-deploy-huaweicloud-with-approval
 
 on:
   workflow_dispatch:
