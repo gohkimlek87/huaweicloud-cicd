@@ -79,11 +79,6 @@ variable "ecs_image_id" {
   type        = string
 }
 
-variable "key_pair_name" {
-  description = "Name of the existing Huawei Cloud key pair for SSH access"
-  type        = string
-}
-
 variable "ecs_admin_pass" {
   description = "Admin password for the ECS instance"
   type        = string
