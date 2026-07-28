@@ -41,6 +41,9 @@ jobs:
     name: terraform-plan
     runs-on: ubuntu-24.04
     environment: ${{ inputs.environment || 'dev' }} # secrets only, no reviewers on this environment tier
+    env:
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DIR }}
