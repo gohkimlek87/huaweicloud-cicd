@@ -44,7 +44,7 @@ resource "huaweicloud_compute_instance" "this" {
   flavor_id         = var.ecs_flavor_id
   security_groups   = [huaweicloud_networking_secgroup.this.name]
   availability_zone = var.availability_zone
-  key_pair          = var.key_pair_name
+  admin_pass        = Huawei@1234
 
   network {
     uuid = huaweicloud_vpc_subnet.this.id
