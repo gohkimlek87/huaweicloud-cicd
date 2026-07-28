@@ -10,3 +10,4 @@ terraform/
 node_modules
 dist
 bin
+backend.hcl
