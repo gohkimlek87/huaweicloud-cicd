@@ -12,7 +12,6 @@ subnet_cidr        = "10.0.1.0/24"
 ecs_flavor_id      = "s6.large.2"
 ecs_image_id       = "REPLACE_WITH_IMAGE_ID"
 ecs_instance_count = 1
-key_pair_name      = "myapp-prod-keypair"
 
 common_tags = {
   Owner = "platform-team"
