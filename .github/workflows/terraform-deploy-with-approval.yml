@@ -83,6 +83,7 @@ jobs:
 
       - name: Terraform Plan
         id: plan
+        continue-on-error: true
         env:
           TF_VAR_hw_region: ${{ vars.HW_REGION }}
           TF_VAR_hw_access_key: ${{ secrets.HW_ACCESS_KEY }}
@@ -95,6 +96,10 @@ jobs:
           TF_VAR_ecs_image_id: ${{ vars.ECS_IMAGE_ID }}
           TF_VAR_ecs_admin_pass: ${{ secrets.HW_ECS_ADMIN_PASS }}
         run: terraform plan -out=tfplan -no-color -input=false -detailed-exitcode
+        
+      - name: Fail if plan errored (exit code 1)
+        if: steps.plan.outputs.exitcode == '1'
+        run: exit 1
 
       # Uploads the plan binary + backend.hcl so the apply job can init
       # against the exact same state target without re-deriving anything.
