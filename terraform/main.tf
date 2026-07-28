@@ -30,12 +30,6 @@ resource "huaweicloud_networking_secgroup" "this" {
   description = "Managed by terraform for ${local.name_prefix}"
 }
 
-resource "huaweicloud_networking_secgroup_rule" "egress_all" {
-  direction         = "egress"
-  ethertype         = "IPv4"
-  security_group_id = huaweicloud_networking_secgroup.this.id
-}
-
 resource "huaweicloud_compute_instance" "this" {
   count = var.ecs_instance_count
 
