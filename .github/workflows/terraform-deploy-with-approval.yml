@@ -95,8 +95,11 @@ jobs:
           TF_VAR_ecs_flavor_id: ${{ vars.ECS_FLAVOR_ID }}
           TF_VAR_ecs_image_id: ${{ vars.ECS_IMAGE_ID }}
           TF_VAR_ecs_admin_pass: ${{ secrets.HW_ECS_ADMIN_PASS }}
-        run: terraform plan -out=tfplan -no-color -input=false -detailed-exitcode
-        
+        run: |
+          set +e
+          terraform plan -out=tfplan -no-color -input=false -detailed-exitcode
+          echo "exitcode=$?" >> "$GITHUB_OUTPUT"
+          
       - name: Fail if plan errored (exit code 1)
         if: steps.plan.outputs.exitcode == '1'
         run: exit 1
