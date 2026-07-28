@@ -172,11 +172,11 @@ jobs:
   # ---------------------------------------------------------------------
   # DESTROY: separate protected path, no dependency on a pre-built plan.
   # ---------------------------------------------------------------------
-  destroy:
-    name: terraform-destroy
+  destroy-plan:
+    name: terraform-destroy-plan
     if: inputs.action == 'destroy'
     runs-on: ubuntu-24.04
-    environment: ${{ inputs.environment || 'dev' }}-protected
+    environment: ${{ inputs.environment || 'dev' }} # unprotected, same as plan job
     env:
       AWS_REQUEST_CHECKSUM_CALCULATION: when_required
       AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
@@ -216,7 +216,7 @@ jobs:
           EOF
           terraform init -backend-config=backend.hcl
 
-      - name: Terraform Destroy
+      - name: Terraform Plan (destroy)
         env:
           TF_VAR_hw_region: ${{ vars.HW_REGION }}
           TF_VAR_hw_access_key: ${{ secrets.HW_ACCESS_KEY }}
@@ -228,8 +228,54 @@ jobs:
           TF_VAR_ecs_flavor_id: ${{ vars.ECS_FLAVOR_ID }}
           TF_VAR_ecs_image_id: ${{ vars.ECS_IMAGE_ID }}
           TF_VAR_ecs_admin_pass: ${{ secrets.HW_ECS_ADMIN_PASS }}
-        run: terraform destroy -auto-approve -input=false
+        run: terraform plan -destroy -out=tfdestroyplan -no-color -input=false
+
+      - name: Upload destroy plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfdestroyplan-${{ inputs.environment || 'dev' }}
+          path: |
+            ${{ env.TF_WORKING_DIR }}/tfdestroyplan
+            ${{ env.TF_WORKING_DIR }}/backend.hcl
+          retention-days: 1
 
       - name: Cleanup local artifacts
         if: always()
-        run: rm -rf .terraform tfplan backend.hcl
+        run: rm -rf .terraform tfdestroyplan backend.hcl
+
+  destroy-apply:
+    name: terraform-destroy-apply
+    needs: destroy-plan
+    if: inputs.action == 'destroy'
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment || 'dev' }}-protected
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Download destroy plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfdestroyplan-${{ inputs.environment || 'dev' }}
+          path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Init (remote state)
+        run: terraform init -backend-config=backend.hcl
+
+      - name: Terraform Apply (destroy plan)
+        run: terraform apply -auto-approve -input=false tfdestroyplan
+
+      - name: Cleanup local artifacts
+        if: always()
+        run: rm -rf .terraform tfdestroyplan backend.hcl
