@@ -89,3 +89,9 @@ variable "ecs_admin_pass" {
   type        = string
   sensitive   = true
 }
+
+variable "ecs_instance_count" {
+  description = "Number of ECS instances to provision"
+  type        = number
+  default     = 1
+}
