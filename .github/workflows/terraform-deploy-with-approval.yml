@@ -134,6 +134,9 @@ jobs:
     if: inputs.action == 'apply' && needs.plan.outputs.has-changes == 'true'
     runs-on: ubuntu-24.04
     environment: ${{ inputs.environment || 'dev' }}-protected # separate env with required reviewers configured
+    env:
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -173,6 +176,9 @@ jobs:
     if: inputs.action == 'destroy'
     runs-on: ubuntu-24.04
     environment: ${{ inputs.environment || 'dev' }}-protected
+    env:
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DIR }}
