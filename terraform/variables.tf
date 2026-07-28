@@ -79,13 +79,13 @@ variable "ecs_image_id" {
   type        = string
 }
 
-variable "ecs_instance_count" {
-  description = "Number of ECS instances to provision"
-  type        = number
-  default     = 1
-}
-
 variable "key_pair_name" {
   description = "Name of the existing Huawei Cloud key pair for SSH access"
   type        = string
+}
+
+variable "ecs_admin_pass" {
+  description = "Admin password for the ECS instance"
+  type        = string
+  sensitive   = true
 }
