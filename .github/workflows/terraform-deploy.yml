@@ -80,7 +80,6 @@ jobs:
           TF_VAR_availability_zone: ${{ vars.HW_AVAILABILITY_ZONE }}
           TF_VAR_ecs_flavor_id: ${{ vars.ECS_FLAVOR_ID }}
           TF_VAR_ecs_image_id: ${{ vars.ECS_IMAGE_ID }}
-          TF_VAR_key_pair_name: ${{ vars.KEY_PAIR_NAME }}
         run: terraform plan -out=tfplan -no-color -input=false
 
       - name: Terraform Apply
@@ -95,7 +94,6 @@ jobs:
           TF_VAR_availability_zone: ${{ vars.HW_AVAILABILITY_ZONE }}
           TF_VAR_ecs_flavor_id: ${{ vars.ECS_FLAVOR_ID }}
           TF_VAR_ecs_image_id: ${{ vars.ECS_IMAGE_ID }}
-          TF_VAR_key_pair_name: ${{ vars.KEY_PAIR_NAME }}
         run: terraform apply -auto-approve -input=false tfplan
 
       - name: Terraform Destroy
@@ -110,7 +108,6 @@ jobs:
           TF_VAR_availability_zone: ${{ vars.HW_AVAILABILITY_ZONE }}
           TF_VAR_ecs_flavor_id: ${{ vars.ECS_FLAVOR_ID }}
           TF_VAR_ecs_image_id: ${{ vars.ECS_IMAGE_ID }}
-          TF_VAR_key_pair_name: ${{ vars.KEY_PAIR_NAME }}
         run: terraform destroy -auto-approve -input=false
 
       # Ephemeral hygiene: strip local artifacts even though the runner is
