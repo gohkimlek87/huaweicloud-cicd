@@ -2,11 +2,11 @@
 # passed via -var flags / TF_VAR_* env vars set from repo/environment
 # variables; secrets (hw_access_key, hw_secret_key) come from GitHub Secrets.
 
-project_name       = "lek"
+project_name       = "123"
 environment        = "prod"
-hw_region          = "ap-southeast-3"
-hw_project_id      = "cf6700d0-6b66-4ad2-ae00-d26a0e23fef2"
-availability_zone  = "ap-southeast-3a"
+hw_region          = "ap-southeast-6"
+hw_project_id      = "ac-6b66-4ad2-ae00-d26a0e23fef2"
+availability_zone  = "ap-southeast-6a"
 vpc_cidr           = "10.0.0.0/16"
 subnet_cidr        = "10.0.1.0/24"
 ecs_flavor_id      = "s6.large.2"
