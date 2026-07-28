@@ -57,13 +57,23 @@ jobs:
 
       - name: Terraform Init (remote state)
         run: |
-          terraform init \
-            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
-            -backend-config="key=${{ inputs.environment || 'dev' }}/terraform.tfstate" \
-            -backend-config="region=${{ vars.HW_REGION }}" \
-            -backend-config="endpoints.s3=${{ vars.TF_STATE_OBS_ENDPOINT }}" \
-            -backend-config="access_key=${{ secrets.HW_ACCESS_KEY }}" \
-            -backend-config="secret_key=${{ secrets.HW_SECRET_KEY }}"
+          cat > backend.hcl <<EOF
+          bucket                      = "${{ vars.TF_STATE_BUCKET }}"
+          key                         = "${{ inputs.environment || 'dev' }}/terraform.tfstate"
+          region                      = "${{ vars.HW_REGION }}"
+          access_key                  = "${{ secrets.HW_ACCESS_KEY }}"
+          secret_key                  = "${{ secrets.HW_SECRET_KEY }}"
+          skip_region_validation      = true
+          skip_credentials_validation = true
+          skip_requesting_account_id  = true
+          skip_metadata_api_check     = true
+          use_path_style              = true
+
+          endpoints = {
+            s3 = "${{ vars.TF_STATE_OBS_ENDPOINT }}"
+          }
+          EOF
+          terraform init -backend-config=backend.hcl
 
       - name: Terraform Validate
         run: terraform validate
@@ -117,4 +127,4 @@ jobs:
       # torn down after the job; avoids leaking plan/state into caches/logs.
       - name: Cleanup local artifacts
         if: always()
-        run: rm -rf .terraform tfplan
+        run: rm -rf .terraform tfplan backend.hcl
