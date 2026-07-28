@@ -1,0 +1,19 @@
+# Copy to terraform.tfvars for local runs. In CI, non-secret values are
+# passed via -var flags / TF_VAR_* env vars set from repo/environment
+# variables; secrets (hw_access_key, hw_secret_key) come from GitHub Secrets.
+
+project_name       = "lek"
+environment        = "prod"
+hw_region          = "ap-southeast-3"
+hw_project_id      = "cf6700d0-6b66-4ad2-ae00-d26a0e23fef2"
+availability_zone  = "ap-southeast-3a"
+vpc_cidr           = "10.0.0.0/16"
+subnet_cidr        = "10.0.1.0/24"
+ecs_flavor_id      = "s6.large.2"
+ecs_image_id       = "ade69537-2b7b-4501-a64c-74d47136f239"
+ecs_instance_count = 1
+# key_pair_name      = "myapp-prod-keypair"
+
+common_tags = {
+  Owner = "platform-team"
+}
