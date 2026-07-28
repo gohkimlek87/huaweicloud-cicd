@@ -88,7 +88,7 @@ variable "ecs_admin_pass" {
 variable "ecs_instance_count" {
   description = "Number of ECS instances to provision"
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "ecs_charging_mode" {
