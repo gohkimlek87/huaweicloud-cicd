@@ -1,0 +1,216 @@
+name: terraform-deploy-huaweicloud
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options: [dev, staging, prod]
+      action:
+        description: "Terraform action"
+        required: true
+        type: choice
+        options: [plan, apply, destroy]
+  pull_request:
+    branches: [main]
+    paths: ["terraform/**"]
+
+concurrency:
+  group: terraform-${{ inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+env:
+  TF_VERSION: "1.7.5"
+  TF_WORKING_DIR: terraform
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  # ---------------------------------------------------------------------
+  # PLAN: runs immediately, no approval gate. Produces the exact binary
+  # plan file that apply will later execute — nothing is re-planned.
+  # ---------------------------------------------------------------------
+  plan:
+    name: terraform-plan
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment || 'dev' }} # secrets only, no reviewers on this environment tier
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+    outputs:
+      has-changes: ${{ steps.plan.outputs.exitcode == '2' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init (remote state)
+        run: |
+          cat > backend.hcl <<EOF
+          bucket                      = "${{ vars.TF_STATE_BUCKET }}"
+          key                         = "${{ inputs.environment || 'dev' }}/terraform.tfstate"
+          region                      = "${{ vars.HW_REGION }}"
+          access_key                  = "${{ secrets.HW_ACCESS_KEY }}"
+          secret_key                  = "${{ secrets.HW_SECRET_KEY }}"
+          skip_region_validation      = true
+          skip_credentials_validation = true
+          skip_requesting_account_id  = true
+          skip_metadata_api_check     = true
+          use_path_style              = false
+
+          endpoints = {
+            s3 = "${{ vars.TF_STATE_OBS_ENDPOINT }}"
+          }
+          EOF
+          terraform init -backend-config=backend.hcl
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        env:
+          TF_VAR_hw_region: ${{ vars.HW_REGION }}
+          TF_VAR_hw_access_key: ${{ secrets.HW_ACCESS_KEY }}
+          TF_VAR_hw_secret_key: ${{ secrets.HW_SECRET_KEY }}
+          TF_VAR_hw_project_id: ${{ vars.HW_PROJECT_ID }}
+          TF_VAR_project_name: ${{ vars.PROJECT_NAME }}
+          TF_VAR_environment: ${{ inputs.environment || 'dev' }}
+          TF_VAR_availability_zone: ${{ vars.HW_AVAILABILITY_ZONE }}
+          TF_VAR_ecs_flavor_id: ${{ vars.ECS_FLAVOR_ID }}
+          TF_VAR_ecs_image_id: ${{ vars.ECS_IMAGE_ID }}
+          TF_VAR_ecs_admin_pass: ${{ secrets.HW_ECS_ADMIN_PASS }}
+        run: terraform plan -out=tfplan -no-color -input=false -detailed-exitcode
+
+      # Uploads the plan binary + backend.hcl so the apply job can init
+      # against the exact same state target without re-deriving anything.
+      - name: Upload plan artifact
+        if: inputs.action == 'apply'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment || 'dev' }}
+          path: |
+            ${{ env.TF_WORKING_DIR }}/tfplan
+            ${{ env.TF_WORKING_DIR }}/backend.hcl
+          retention-days: 1
+
+      - name: Cleanup local artifacts
+        if: always()
+        run: rm -rf .terraform tfplan backend.hcl
+
+  # ---------------------------------------------------------------------
+  # APPLY: only runs for action=apply, gated behind the target
+  # GitHub Environment's required reviewers. Job pauses here until
+  # someone with reviewer rights approves it in the Actions UI.
+  # ---------------------------------------------------------------------
+  apply:
+    name: terraform-apply
+    needs: plan
+    if: inputs.action == 'apply' && needs.plan.outputs.has-changes == 'true'
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment || 'dev' }}-protected # separate env with required reviewers configured
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment || 'dev' }}
+          path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Init (remote state)
+        run: terraform init -backend-config=backend.hcl
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false tfplan
+
+      - name: Cleanup local artifacts
+        if: always()
+        run: rm -rf .terraform tfplan backend.hcl
+
+  # ---------------------------------------------------------------------
+  # DESTROY: separate protected path, no dependency on a pre-built plan.
+  # ---------------------------------------------------------------------
+  destroy:
+    name: terraform-destroy
+    if: inputs.action == 'destroy'
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment || 'dev' }}-protected
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init (remote state)
+        run: |
+          cat > backend.hcl <<EOF
+          bucket                      = "${{ vars.TF_STATE_BUCKET }}"
+          key                         = "${{ inputs.environment || 'dev' }}/terraform.tfstate"
+          region                      = "${{ vars.HW_REGION }}"
+          access_key                  = "${{ secrets.HW_ACCESS_KEY }}"
+          secret_key                  = "${{ secrets.HW_SECRET_KEY }}"
+          skip_region_validation      = true
+          skip_credentials_validation = true
+          skip_requesting_account_id  = true
+          skip_metadata_api_check     = true
+          use_path_style              = false
+
+          endpoints = {
+            s3 = "${{ vars.TF_STATE_OBS_ENDPOINT }}"
+          }
+          EOF
+          terraform init -backend-config=backend.hcl
+
+      - name: Terraform Destroy
+        env:
+          TF_VAR_hw_region: ${{ vars.HW_REGION }}
+          TF_VAR_hw_access_key: ${{ secrets.HW_ACCESS_KEY }}
+          TF_VAR_hw_secret_key: ${{ secrets.HW_SECRET_KEY }}
+          TF_VAR_hw_project_id: ${{ vars.HW_PROJECT_ID }}
+          TF_VAR_project_name: ${{ vars.PROJECT_NAME }}
+          TF_VAR_environment: ${{ inputs.environment || 'dev' }}
+          TF_VAR_availability_zone: ${{ vars.HW_AVAILABILITY_ZONE }}
+          TF_VAR_ecs_flavor_id: ${{ vars.ECS_FLAVOR_ID }}
+          TF_VAR_ecs_image_id: ${{ vars.ECS_IMAGE_ID }}
+          TF_VAR_ecs_admin_pass: ${{ secrets.HW_ECS_ADMIN_PASS }}
+        run: terraform destroy -auto-approve -input=false
+
+      - name: Cleanup local artifacts
+        if: always()
+        run: rm -rf .terraform tfplan backend.hcl
