@@ -90,3 +90,13 @@ variable "ecs_instance_count" {
   type        = number
   default     = 1
 }
+
+variable "ecs_charging_mode" {
+  description = "ECS billing mode: postPaid (pay-per-use) or prePaid (monthly/yearly)"
+  type        = string
+  default     = "postPaid"
+  validation {
+    condition     = contains(["postPaid", "prePaid"], var.ecs_charging_mode)
+    error_message = "ecs_charging_mode must be postPaid or prePaid."
+  }
+}
