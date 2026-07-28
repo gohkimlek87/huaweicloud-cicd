@@ -39,6 +39,7 @@ jobs:
   # ---------------------------------------------------------------------
   plan:
     name: terraform-plan
+    if: inputs.action == 'plan' || inputs.action == 'apply'
     runs-on: ubuntu-24.04
     environment: ${{ inputs.environment || 'dev' }} # secrets only, no reviewers on this environment tier
     env:
