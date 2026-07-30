@@ -13,6 +13,9 @@ on:
         required: true
         type: choice
         options: [plan, apply, destroy]
+  push:
+    branches: [main]
+    paths: ["terraform/**"]
   pull_request:
     branches: [main]
     paths: ["terraform/**"]
