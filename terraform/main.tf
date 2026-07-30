@@ -51,3 +51,5 @@ resource "huaweicloud_compute_instance" "this" {
     create_before_destroy = true
   }
 }
+
+# Simulate push request
