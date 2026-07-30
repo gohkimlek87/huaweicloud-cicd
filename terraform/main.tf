@@ -52,4 +52,4 @@ resource "huaweicloud_compute_instance" "this" {
   }
 }
 
-# Simulate push request one
+# Simulate push request two
